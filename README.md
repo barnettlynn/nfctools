@@ -124,6 +124,36 @@ All tools support structured logging via `log/slog` (Go 1.21+ stdlib):
 - **Debug** (`-v`): APDU commands, session keys, secure messaging details, retry logic
 - **Warn**: Automatically logged for retry/fallback operations (e.g., wrong Le, auth fallback, plain→secure GetFileSettings)
 
+### Changing Log Level
+
+There are two ways to control logging:
+
+**1. Command-line flags** (recommended):
+```bash
+./sdmconfig          # Info level (default)
+./sdmconfig -v       # Debug level
+```
+
+**2. Programmatic control** (for advanced users):
+
+The tools use Go's `log/slog` standard library. To customize logging beyond the built-in flags, you can:
+
+- Modify the tool's `main()` function to use a custom handler
+- Set different log levels for different components
+- Add custom log attributes or filtering
+
+Example custom handler in `main()`:
+```go
+import "log/slog"
+
+// In main(), replace the default setup with:
+handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+    Level: slog.LevelWarn,  // Show only warnings and errors
+    AddSource: true,         // Include source file:line
+})
+slog.SetDefault(slog.New(handler))
+```
+
 ### Log Output
 - Logs are written to **stderr**
 - User-facing output (UID, file settings, etc.) goes to **stdout**
@@ -134,8 +164,11 @@ Example:
 # Save tag info to file, debug logs to console
 ./ro -v > tag_info.txt
 
-# Debug logs with timestamps
+# Debug logs with timestamps in JSON
 ./sdmconfig -v -log-format json 2> debug.log
+
+# Suppress all logs except errors (requires code modification)
+# Edit main() to set Level: slog.LevelError
 ```
 
 ## Versioning
