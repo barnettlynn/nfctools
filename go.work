@@ -1,0 +1,10 @@
+go 1.21
+
+use (
+	./keyswap
+	./newekey
+	./permissionsedit
+	./pkg/ntag424
+	./ro
+	./sdmconfig
+)

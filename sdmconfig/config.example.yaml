@@ -1,0 +1,16 @@
+url: "https://api.guideapparel.com/tap"
+
+sdm:
+  file_no: 2
+  sdm_key_no: 1
+
+auth:
+  settings_key_no: 0
+  settings_key_hex_file: "../keys/AppMasterKey.hex"
+  file2_write_key_no: 2
+  file2_write_key_hex_file: "../keys/FileTwoWrite.hex"
+
+runtime:
+  reader_index: 0
+  settings_only: false
+  force_plain: false

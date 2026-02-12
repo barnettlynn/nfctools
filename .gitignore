@@ -1,0 +1,26 @@
+# AES key files
+keys/*.hex
+
+# Compiled binaries
+sdmconfig/sdmconfig
+ro/ro
+newekey/newekey
+keyswap/keyswap
+permissionsedit/permissionsedit
+ntag424_read
+
+# Go build cache
+.gocache/
+
+# macOS
+.DS_Store
+
+# Config with real values
+config.yaml
+*.bak
+*.bak2
+
+# IDE
+.idea/
+.vscode/
+*.swp
