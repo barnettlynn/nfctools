@@ -10,21 +10,23 @@ import (
 
 const (
 	counterFileNo    = 0x02
+	ndefFileNo       = 0x01 // NDEF file number (different from counterFileNo)
 	authDefaultKeyNo = 0x00
 )
 
 // provisionTag provisions an NTAG 424 DNA tag with the specified keys and SDM configuration.
-// It follows the modern pattern using direct ntag424 package calls.
+// Assumes tag is in factory default state (all keys = zeros, Write access = free).
 //
 // Steps:
 //  1. Get UID
-//  2. Select NDEF app
-//  3. Authenticate with factory zero key (slot 0)
-//  4. Change keys: SDM (slot 1), NDEF write (slot 2), App master (slot 0)
-//  5. Build SDM NDEF template
-//  6. Re-authenticate with new app master key
-//  7. Configure SDM file settings
-//  8. Write NDEF template
+//  2. Build SDM NDEF template
+//  3. Write NDEF using plain write (no auth needed since Write=free on factory default)
+//  4. Select NDEF app
+//  5. Authenticate with factory zero key (slot 0) to enable key changes
+//  6. Change keys: SDM (slot 1), NDEF write (slot 2), App master (slot 0)
+//  7. Re-select NDEF app
+//  8. Re-authenticate with new app master key
+//  9. Configure SDM file settings
 //
 // Returns the tag UID as a hex string (uppercase) on success.
 func provisionTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey []byte, baseURL string) (string, error) {
@@ -35,19 +37,32 @@ func provisionTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey []byte
 	}
 	uidHex := strings.ToUpper(hex.EncodeToString(uid))
 
-	// 2) Select NDEF application
-	if err := ntag424.SelectNDEFApp(conn); err != nil {
-		return "", fmt.Errorf("select NDEF app: %w", err)
+	// 2) Build SDM NDEF template
+	sdm, err := ntag424.BuildSDMNDEF(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("build SDM NDEF: %w", err)
 	}
 
-	// 3) Authenticate with factory zero key (slot 0)
+	// 3) Write NDEF using plain write (no auth needed on factory default where Write=free)
+	// WriteNDEFPlain selects NDEF app and file, then writes using ISO UPDATE BINARY
+	if err := ntag424.WriteNDEFPlain(conn, sdm.NDEF); err != nil {
+		return "", fmt.Errorf("write NDEF: %w", err)
+	}
+
+	// 4) Select NDEF application to set up for authentication
+	// (WriteNDEFPlain already selected it, but being explicit for clarity)
+	if err := ntag424.SelectNDEFApp(conn); err != nil {
+		return "", fmt.Errorf("select NDEF app for auth: %w", err)
+	}
+
+	// 5) Authenticate with factory zero key (slot 0) to change keys
 	zeroKey := make([]byte, 16)
 	sess, err := ntag424.AuthenticateEV2First(conn, zeroKey, authDefaultKeyNo)
 	if err != nil {
 		return "", fmt.Errorf("authenticate with factory key: %w", err)
 	}
 
-	// 4) Change keys: SDM (slot 1), NDEF write (slot 2), App master (slot 0)
+	// 7) Change keys: SDM (slot 1), NDEF write (slot 2), App master (slot 0)
 	// Change slot 1 (SDM key)
 	if err := ntag424.ChangeKey(conn, sess, 0x01, sdmKey, zeroKey, 0x01, authDefaultKeyNo); err != nil {
 		return "", fmt.Errorf("change key slot 1 (SDM): %w", err)
@@ -59,23 +74,22 @@ func provisionTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey []byte
 	}
 
 	// Change slot 0 (app master key) - uses current auth key as old key
-	if err := ntag424.ChangeKey(conn, sess, 0x00, appMasterKey, zeroKey, 0x01, authDefaultKeyNo); err != nil {
+	if err := ntag424.ChangeKeySame(conn, sess, 0x00, appMasterKey, 0x01); err != nil {
 		return "", fmt.Errorf("change key slot 0 (app master): %w", err)
 	}
 
-	// 5) Build SDM NDEF template
-	sdm, err := ntag424.BuildSDMNDEF(baseURL)
-	if err != nil {
-		return "", fmt.Errorf("build SDM NDEF: %w", err)
+	// 8) Re-select NDEF app (required before re-authenticating)
+	if err := ntag424.SelectNDEFApp(conn); err != nil {
+		return "", fmt.Errorf("re-select NDEF app: %w", err)
 	}
 
-	// 6) Re-authenticate with new app master key (session is invalidated after changing slot 0)
+	// 9) Re-authenticate with new app master key (session is invalidated after changing slot 0)
 	sess, err = ntag424.AuthenticateEV2First(conn, appMasterKey, 0x00)
 	if err != nil {
 		return "", fmt.Errorf("re-authenticate with new app master key: %w", err)
 	}
 
-	// 7) Configure SDM file settings
+	// 10) Configure SDM file settings
 	// Access rights: RW=0x02, CAR=0x00, R=0x0E (free), W=0x02
 	const (
 		rwKeyNo  = 0x02
@@ -96,11 +110,6 @@ func provisionTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey []byte
 		sdmOptions, sdmMeta, sdmFile, sdmCtr,
 		sdm.UIDOffset, sdm.CtrOffset, sdm.MacInputOffset, sdm.MacOffset); err != nil {
 		return "", fmt.Errorf("change file settings SDM: %w", err)
-	}
-
-	// 8) Write NDEF template (plain)
-	if err := ntag424.WriteNDEFPlain(conn, sdm.NDEF); err != nil {
-		return "", fmt.Errorf("write NDEF: %w", err)
 	}
 
 	return uidHex, nil

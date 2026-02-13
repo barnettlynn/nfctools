@@ -25,8 +25,9 @@ type Config struct {
 }
 
 type APIConfig struct {
-	Endpoint    string `yaml:"endpoint"`
-	BearerToken string `yaml:"bearer_token"`
+	Endpoint       string `yaml:"endpoint"`
+	CFClientID     string `yaml:"cf_client_id"`
+	CFClientSecret string `yaml:"cf_client_secret"`
 }
 
 type KeysConfig struct {
@@ -90,8 +91,11 @@ func (c *Config) validateCommon() error {
 	if strings.TrimSpace(c.API.Endpoint) == "" {
 		return fmt.Errorf("config.api.endpoint is required")
 	}
-	if strings.TrimSpace(c.API.BearerToken) == "" {
-		return fmt.Errorf("config.api.bearer_token is required")
+	if strings.TrimSpace(c.API.CFClientID) == "" {
+		return fmt.Errorf("config.api.cf_client_id is required")
+	}
+	if strings.TrimSpace(c.API.CFClientSecret) == "" {
+		return fmt.Errorf("config.api.cf_client_secret is required")
 	}
 	return nil
 }

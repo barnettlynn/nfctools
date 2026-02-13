@@ -1,6 +1,7 @@
 api:
   endpoint: "https://api.guideapparel.com/v1/tags"
-  bearer_token: "your-cloudflare-workers-bearer-token"
+  cf_client_id: "your-cloudflare-access-client-id"
+  cf_client_secret: "your-cloudflare-access-client-secret"
 
 keys:
   app_master_key_file: "../keys/AppMasterKey.hex"

@@ -18,7 +18,7 @@ type TagRegistration struct {
 	Notes     string `json:"notes,omitempty"`
 }
 
-func registerTag(endpoint, bearerToken string, reg TagRegistration) error {
+func registerTag(endpoint, cfClientID, cfClientSecret string, reg TagRegistration) error {
 	payload, err := json.Marshal(reg)
 	if err != nil {
 		return fmt.Errorf("marshal registration: %w", err)
@@ -30,7 +30,8 @@ func registerTag(endpoint, bearerToken string, reg TagRegistration) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("CF-Access-Client-Id", cfClientID)
+	req.Header.Set("CF-Access-Client-Secret", cfClientSecret)
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,

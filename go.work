@@ -6,6 +6,7 @@ use (
 	./minter
 	./permissionsedit
 	./pkg/ntag424
+	./reset
 	./ro
 	./sdmconfig
 )

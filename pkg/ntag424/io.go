@@ -103,3 +103,67 @@ func WriteNDEFData(card Card, data []byte) error {
 	}
 	return nil
 }
+
+// WriteFileDataPlain writes data to a file using DESFire native WriteData (INS 0x3D).
+// This respects DESFire access rights (Write=free will work without authentication).
+// Mirrors ReadFileDataPlain but for writing.
+func WriteFileDataPlain(card Card, fileNo byte, offset int, data []byte) error {
+	written := 0
+	for written < len(data) {
+		chunk := len(data) - written
+		if chunk > 0xFF {
+			chunk = 0xFF
+		}
+
+		apdu := make([]byte, 0, 12+chunk)
+		apdu = append(apdu, 0x90, 0x3D, 0x00, 0x00, byte(7+chunk))
+		apdu = append(apdu, fileNo)
+		apdu = append(apdu, byte(offset), byte(offset>>8), byte(offset>>16))
+		apdu = append(apdu, byte(chunk), byte(chunk>>8), byte(chunk>>16))
+		apdu = append(apdu, data[written:written+chunk]...)
+		apdu = append(apdu, 0x00)
+
+		_, sw, err := Transmit(card, apdu)
+		if err != nil {
+			return err
+		}
+		if !SwOK(sw) {
+			return &SWError{Cmd: 0x3D, SW: sw}
+		}
+		written += chunk
+		offset += chunk
+	}
+	return nil
+}
+
+// WriteFileDataSecure writes data to a file using DESFire native WriteData (INS 0x3D)
+// with secure messaging (CMAC). Requires active authentication session.
+// Mirrors ReadFileDataSecure - all parameters go in encrypted cmdData.
+func WriteFileDataSecure(card Card, sess *Session, fileNo byte, offset int, data []byte) error {
+	written := 0
+	for written < len(data) {
+		chunk := len(data) - written
+		// Use very small chunks to avoid APDU length issues
+		if chunk > 16 {
+			chunk = 16
+		}
+
+		// Build command data: fileNo + offset (3 LE) + length (3 LE) + file data
+		// Everything gets encrypted together, just like ReadFileDataSecure
+		cmdData := make([]byte, 0, 7+chunk)
+		cmdData = append(cmdData, fileNo)
+		cmdData = append(cmdData, byte(offset), byte(offset>>8), byte(offset>>16))
+		cmdData = append(cmdData, byte(chunk), byte(chunk>>8), byte(chunk>>16))
+		cmdData = append(cmdData, data[written:written+chunk]...)
+
+		// Use SsmCmdFull with nil header (everything in encrypted data)
+		_, err := SsmCmdFull(card, sess, 0x3D, nil, cmdData)
+		if err != nil {
+			return err
+		}
+
+		written += chunk
+		offset += chunk
+	}
+	return nil
+}

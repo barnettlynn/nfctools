@@ -8,6 +8,7 @@ newekey/newekey
 keyswap/keyswap
 permissionsedit/permissionsedit
 minter/minter
+reset/reset
 ntag424_read
 
 # Go build cache

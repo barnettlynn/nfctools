@@ -130,7 +130,7 @@ func main() {
 
 	// Register tag with API
 	fmt.Printf("Registering tag with API: %s\n", cfg.API.Endpoint)
-	if err := registerTag(cfg.API.Endpoint, cfg.API.BearerToken, reg); err != nil {
+	if err := registerTag(cfg.API.Endpoint, cfg.API.CFClientID, cfg.API.CFClientSecret, reg); err != nil {
 		log.Fatalf("register tag failed: %v", err)
 	}
 
