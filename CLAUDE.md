@@ -23,10 +23,10 @@ All 5 key slots (0-4) must be explicitly reset to 16 zero bytes with version 0x0
 
 All 3 files must be restored to factory defaults:
 - **File 1 (CC)**: FileOption=0x00, AR1=0x00, AR2=0xE0
-- **File 2 (NDEF)**: FileOption=0x00, AR1=0x00, AR2=0xE0
+- **File 2 (NDEF)**: FileOption=0x00, AR1=0x00, AR2=0xEE
 - **File 3 (Proprietary)**: FileOption=0x03, AR1=0x00, AR2=0x00
 
-AR2 encoding: `0xE0` = Read=free (0xE), Write=slot 0 (0x0)
+AR2 encoding: `0xE0` = Read=free (0xE), Write=slot 0 (0x0), `0xEE` = Read=free (0xE), Write=free (0xE)
 
 ### Common Pitfalls
 - **Variable shadowing with `:=`** - Be careful when reusing error variables in nested scopes

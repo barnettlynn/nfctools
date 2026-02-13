@@ -28,7 +28,7 @@ Restores provisioned NTAG 424 DNA tags to factory defaults by reversing all chan
 ### Phase 4: File Settings Restoration (Step 13)
 13. Re-authenticate with zero key, then restore all three files to factory defaults:
     - File 1 (CC): FileOption=0x00, AR1=0x00, AR2=0xE0
-    - File 2 (NDEF): FileOption=0x00, AR1=0x00, AR2=0xE0 *(corrects temporary 0xEE)*
+    - File 2 (NDEF): FileOption=0x00, AR1=0x00, AR2=0xEE *(Write=free, required for minter)*
     - File 3 (Proprietary): FileOption=0x03, AR1=0x00, AR2=0x00
 
 ### Phase 5: Verification (Step 14)
@@ -49,18 +49,20 @@ Changing the authenticated key slot (slot 0) invalidates the session:
 - Only then can file settings be restored
 
 ### File Settings Strategy
-Two-phase approach required:
-1. **Temporary settings** (Step 6): Set Write=free to allow NDEF clear without auth
-2. **Final restoration** (Step 13): Restore all files to true factory defaults after keys are reset
+File 2 settings remain at AR2=0xEE (Write=free) throughout:
+1. **Step 6**: Set Write=free to allow NDEF clear without auth
+2. **Step 13**: Keep Write=free (AR2=0xEE) as this is the factory default required for minter compatibility
 
-Cannot restore file settings to final state before NDEF clear because factory AR2=0xE0 requires authentication for writes.
+Note: File 2 factory default is AR2=0xEE (Write=free), not AR2=0xE0. This allows minter to write NDEF without authentication.
 
 ## Testing
 After running reset, verify with `ro` tool:
 - All 5 key slots = 16 zero bytes
 - File 1: FileOption=0x00, AR2=0xE0
-- File 2: FileOption=0x00, AR2=0xE0, SDM disabled, NDEF empty
+- File 2: FileOption=0x00, AR2=0xEE (Write=free), SDM disabled, NDEF empty
 - File 3: FileOption=0x03, AR2=0x00
+
+Then verify minter works by provisioning the tag.
 
 ## Common Issues
 - **Session invalidation**: Forgetting to re-auth after slot 0 change

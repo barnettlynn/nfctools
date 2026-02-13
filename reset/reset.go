@@ -225,8 +225,8 @@ func resetTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey, fileThree
 	}
 	fmt.Println("File 1 (CC) settings restored to factory defaults")
 
-	// File 2 (NDEF): FileOption=0x00, AR1=0x00, AR2=0xE0
-	if err := ntag424.ChangeFileSettingsBasic(conn, sess, counterFileNo, 0x00, 0x00, 0xE0); err != nil {
+	// File 2 (NDEF): FileOption=0x00, AR1=0x00, AR2=0xEE (Write=free for minter compatibility)
+	if err := ntag424.ChangeFileSettingsBasic(conn, sess, counterFileNo, 0x00, 0x00, 0xEE); err != nil {
 		return fmt.Errorf("restore file 2 settings: %w", err)
 	}
 	fmt.Println("File 2 (NDEF) settings restored to factory defaults")
@@ -273,7 +273,7 @@ func resetTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey, fileThree
 	}
 	fmt.Println("\nFile settings restored:")
 	fmt.Println("  ✓ File 1 (CC): FileOption=0x00, AR1=0x00, AR2=0xE0")
-	fmt.Println("  ✓ File 2 (NDEF): FileOption=0x00, AR1=0x00, AR2=0xE0")
+	fmt.Println("  ✓ File 2 (NDEF): FileOption=0x00, AR1=0x00, AR2=0xEE")
 	fmt.Println("  ✓ File 3 (Proprietary): FileOption=0x03, AR1=0x00, AR2=0x00")
 	if beforeSettings != nil {
 		fmt.Println("\nFile 2 settings (before):")
