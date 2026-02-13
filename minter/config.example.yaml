@@ -1,0 +1,14 @@
+api:
+  endpoint: "https://api.guideapparel.com/v1/tags"
+  bearer_token: "your-cloudflare-workers-bearer-token"
+
+keys:
+  app_master_key_file: "../keys/AppMasterKey.hex"
+  sdm_key_file: "../keys/SDMEncryptionKey.hex"
+  ndef_write_key_file: "../keys/FileTwoWrite.hex"
+
+sdm:
+  base_url: "https://api.guideapparel.com/tap"
+
+runtime:
+  reader_index: 0

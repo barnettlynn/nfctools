@@ -197,3 +197,85 @@ func VerifySDMMACDetailed(rawURL string, sdmFileKey []byte) (match bool, counter
 	match = bytes.Equal(computed, expectedBytes)
 	return match, counter, computedMAC, nil
 }
+
+// GenerateSDMURL generates an SDM URL by simulating what the NTAG 424 DNA tag does on tap.
+// This is the inverse of VerifySDMMAC — it computes the MAC from the tag's perspective.
+//
+// Parameters:
+//   - baseURL: Base URL (e.g., "https://api.guideapparel.com/tap")
+//   - uid: 7-byte tag UID
+//   - counter: SDM read counter value (0-0xFFFFFF)
+//   - sdmFileKey: 16-byte SDM file read key
+//
+// Returns:
+//   - Complete SDM URL with uid, ctr, mac query parameters
+//   - error if validation fails
+//
+// The function:
+//  1. Validates inputs (uid=7 bytes, sdmFileKey=16 bytes, counter <= 0xFFFFFF)
+//  2. Encodes UID as uppercase hex (14 chars)
+//  3. Encodes counter as 3-byte big-endian uppercase hex (6 chars)
+//  4. Derives SDM session key
+//  5. Computes CMAC over "uid=<UID>&ctr=<CTR>&mac="
+//  6. Truncates CMAC to 8 bytes (odd bytes only)
+//  7. Builds final URL preserving any existing query parameters
+func GenerateSDMURL(baseURL string, uid []byte, counter uint32, sdmFileKey []byte) (string, error) {
+	// Validate inputs
+	if len(uid) != 7 {
+		return "", fmt.Errorf("UID must be 7 bytes, got %d", len(uid))
+	}
+	if len(sdmFileKey) != 16 {
+		return "", fmt.Errorf("SDM file key must be 16 bytes, got %d", len(sdmFileKey))
+	}
+	if counter > 0xFFFFFF {
+		return "", fmt.Errorf("counter must be <= 0xFFFFFF, got %d", counter)
+	}
+
+	// Encode UID as uppercase hex (14 chars)
+	uidHex := strings.ToUpper(hex.EncodeToString(uid))
+
+	// Encode counter as 3-byte big-endian uppercase hex (6 chars)
+	ctrBytesBE := []byte{
+		byte((counter >> 16) & 0xFF),
+		byte((counter >> 8) & 0xFF),
+		byte(counter & 0xFF),
+	}
+	ctrHex := strings.ToUpper(hex.EncodeToString(ctrBytesBE))
+
+	// Convert counter to little-endian for SDM key derivation
+	ctrBytesLE := []byte{ctrBytesBE[2], ctrBytesBE[1], ctrBytesBE[0]}
+
+	// Derive SDM session key
+	sessionKey, err := DeriveSDMSessionKey(sdmFileKey, uid, ctrBytesLE)
+	if err != nil {
+		return "", fmt.Errorf("session key derive: %v", err)
+	}
+
+	// Build MAC input string
+	macInput := fmt.Sprintf("uid=%s&ctr=%s&mac=", uidHex, ctrHex)
+
+	// Compute CMAC
+	cmac, err := aesCMAC(sessionKey, []byte(macInput))
+	if err != nil {
+		return "", fmt.Errorf("CMAC error: %v", err)
+	}
+
+	// Truncate to 8 bytes (odd bytes only)
+	truncated := truncateOddBytes(cmac)
+	macHex := strings.ToUpper(hex.EncodeToString(truncated))
+
+	// Build final URL with query parameters
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid base URL: %v", err)
+	}
+
+	// Preserve existing query parameters and add SDM params
+	q := parsedURL.Query()
+	q.Set("uid", uidHex)
+	q.Set("ctr", ctrHex)
+	q.Set("mac", macHex)
+	parsedURL.RawQuery = q.Encode()
+
+	return parsedURL.String(), nil
+}

@@ -1,8 +1,9 @@
 go 1.21
 
 use (
+	./emulator
 	./keyswap
-	./newekey
+	./minter
 	./permissionsedit
 	./pkg/ntag424
 	./ro

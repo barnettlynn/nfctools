@@ -27,10 +27,11 @@ This is a Go workspace (`go.work`) containing:
   - Verify SDM URLs
   - Probe authentication slots
 
-- **`newekey`** - Provision new tags with custom keys
+- **`minter`** - Provision new tags and register with backend API
   - Initialize tags from factory defaults
   - Set all application keys
   - Configure SDM settings
+  - Register tag with minter-backend API
 
 - **`keyswap`** - Interactive key replacement tool
   - Replace keys in specific slots
@@ -55,9 +56,10 @@ The workspace contains these modules:
 ./pkg/ntag424          # Shared library
 ./sdmconfig            # SDM configuration tool
 ./ro                   # Read-only diagnostic tool
-./newekey              # Tag provisioning tool
+./minter               # Tag provisioning and registration tool
 ./keyswap              # Key replacement tool
 ./permissionsedit      # Permissions editor tool
+./emulator             # Emulator tool
 ```
 
 ## Building
@@ -67,14 +69,14 @@ Each tool is built independently:
 ```bash
 cd sdmconfig && go build .
 cd ro && go build .
-cd newekey && go build .
+cd minter && go build .
 cd keyswap && go build .
 cd permissionsedit && go build .
 ```
 
 Or build all tools at once:
 ```bash
-for d in sdmconfig ro newekey keyswap permissionsedit; do
+for d in sdmconfig ro minter keyswap permissionsedit; do
   (cd "$d" && go build .)
 done
 ```
@@ -110,7 +112,7 @@ All tools support structured logging via `log/slog` (Go 1.21+ stdlib):
 ```bash
 ./sdmconfig -v                    # Enable debug logging
 ./ro -v                           # Enable debug logging
-./newekey -v                      # Enable debug logging
+./minter -v                       # Enable debug logging
 ```
 
 ### JSON Logging
@@ -202,9 +204,9 @@ During development, the workspace ensures all tools use the local version.
 ./ro/ro -auth-key-file keys/AppMasterKey.hex
 ```
 
-### Provision New Tag
+### Provision and Register New Tag
 ```bash
-./newekey/newekey -url https://example.com/tap
+./minter/minter -hat-name "Classic Trucker" -hat-color "Navy"
 ```
 
 ### Replace a Key

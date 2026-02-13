@@ -7,6 +7,7 @@ ro/ro
 newekey/newekey
 keyswap/keyswap
 permissionsedit/permissionsedit
+minter/minter
 ntag424_read
 
 # Go build cache
