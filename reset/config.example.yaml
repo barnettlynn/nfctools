@@ -1,0 +1,7 @@
+keys:
+  app_master_key_file: "../keys/AppMasterKey.hex"
+  sdm_key_file: "../keys/SDMEncryptionKey.hex"
+  ndef_write_key_file: "../keys/FileTwoWrite.hex"
+
+runtime:
+  reader_index: 0

@@ -1,0 +1,8 @@
+github.com/barnettlynn/nfctools/pkg/ntag424 v0.0.0-20260213215208-18184b22ffd8 h1:wRle+6jb04UHRvmWQ1bxYhtUoMRgXRUJgAq19vKxm/g=
+github.com/barnettlynn/nfctools/pkg/ntag424 v0.0.0-20260213215208-18184b22ffd8/go.mod h1:LJ7aCcSTnaOzqR5uF0kDltf/EvcqFIdClvS2mNirXsE=
+github.com/ebfe/scard v0.0.0-20241214075232-7af069cabc25 h1:vXmXuiy1tgifTqWAAaU+ESu1goRp4B3fdhemWMMrS4g=
+github.com/ebfe/scard v0.0.0-20241214075232-7af069cabc25/go.mod h1:BkYEeWL6FbT4Ek+TcOBnPzEKnL7kOq2g19tTQXkorHY=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
