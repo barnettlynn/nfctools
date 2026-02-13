@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -15,18 +16,19 @@ const (
 )
 
 // provisionTag provisions an NTAG 424 DNA tag with the specified keys and SDM configuration.
-// Assumes tag is in factory default state (all keys = zeros, Write access = free).
+// Handles tags in factory default state (all keys = zeros) regardless of File 2 access rights.
 //
 // Steps:
 //  1. Get UID
 //  2. Build SDM NDEF template
-//  3. Write NDEF using plain write (no auth needed since Write=free on factory default)
-//  4. Select NDEF app
-//  5. Authenticate with factory zero key (slot 0) to enable key changes
-//  6. Change keys: SDM (slot 1), NDEF write (slot 2), App master (slot 0)
-//  7. Re-select NDEF app
-//  8. Re-authenticate with new app master key
-//  9. Configure SDM file settings
+//  3. Authenticate with zero key and set File 2 to Write=free (if needed)
+//  4. Write NDEF using plain write
+//  5. Select NDEF app
+//  6. Re-authenticate with factory zero key (slot 0) to enable key changes
+//  7. Change keys: SDM (slot 1), NDEF write (slot 2), App master (slot 0)
+//  8. Re-select NDEF app
+//  9. Re-authenticate with new app master key
+// 10. Configure SDM file settings
 //
 // Returns the tag UID as a hex string (uppercase) on success.
 func provisionTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey []byte, baseURL string) (string, error) {
@@ -43,21 +45,65 @@ func provisionTag(conn *ntag424.Connection, appMasterKey, sdmKey, ndefKey []byte
 		return "", fmt.Errorf("build SDM NDEF: %w", err)
 	}
 
-	// 3) Write NDEF using plain write (no auth needed on factory default where Write=free)
+	// 3) Ensure tag is at factory defaults before provisioning
+	// Try to authenticate - if tag is provisioned, reset it first
+	zeroKey := make([]byte, 16)
+	if err := ntag424.SelectNDEFApp(conn); err != nil {
+		return "", fmt.Errorf("select NDEF app for prep: %w", err)
+	}
+	sess, authKey, _, err := ntag424.AuthenticateWithFallback(conn, appMasterKey, authDefaultKeyNo, authDefaultKeyNo)
+	if err != nil {
+		return "", fmt.Errorf("authenticate for prep: %w", err)
+	}
+
+	// Determine if tag is provisioned by checking which key authenticated
+	provisioned := !bytes.Equal(authKey, zeroKey)
+
+	// If tag is provisioned, reset it to factory defaults
+	if provisioned {
+		// Reset all keys to zeros
+		if err := ntag424.ChangeKey(conn, sess, 0x01, zeroKey, sdmKey, 0x00, authDefaultKeyNo); err != nil {
+			return "", fmt.Errorf("reset key slot 1: %w", err)
+		}
+		if err := ntag424.ChangeKey(conn, sess, 0x02, zeroKey, ndefKey, 0x00, authDefaultKeyNo); err != nil {
+			return "", fmt.Errorf("reset key slot 2: %w", err)
+		}
+		if err := ntag424.ChangeKeySame(conn, sess, 0x00, zeroKey, 0x00); err != nil {
+			return "", fmt.Errorf("reset key slot 0: %w", err)
+		}
+
+		// Re-authenticate with zero key
+		if err := ntag424.SelectNDEFApp(conn); err != nil {
+			return "", fmt.Errorf("re-select after reset: %w", err)
+		}
+		sess, err = ntag424.AuthenticateEV2First(conn, zeroKey, authDefaultKeyNo)
+		if err != nil {
+			return "", fmt.Errorf("re-auth after reset: %w", err)
+		}
+		authKey = zeroKey
+	}
+
+	// Set File 2 to Write=free (AR2=0xEE) to allow unauthenticated NDEF write
+	if err := ntag424.ChangeFileSettingsBasic(conn, sess, counterFileNo, 0x00, 0x00, 0xEE); err != nil {
+		return "", fmt.Errorf("set file 2 write=free: %w", err)
+	}
+
+	_ = authKey // Mark as used
+
+	// 4) Write NDEF using plain write (now Write=free is guaranteed)
 	// WriteNDEFPlain selects NDEF app and file, then writes using ISO UPDATE BINARY
 	if err := ntag424.WriteNDEFPlain(conn, sdm.NDEF); err != nil {
 		return "", fmt.Errorf("write NDEF: %w", err)
 	}
 
-	// 4) Select NDEF application to set up for authentication
+	// 5) Select NDEF application to set up for authentication
 	// (WriteNDEFPlain already selected it, but being explicit for clarity)
 	if err := ntag424.SelectNDEFApp(conn); err != nil {
 		return "", fmt.Errorf("select NDEF app for auth: %w", err)
 	}
 
-	// 5) Authenticate with factory zero key (slot 0) to change keys
-	zeroKey := make([]byte, 16)
-	sess, err := ntag424.AuthenticateEV2First(conn, zeroKey, authDefaultKeyNo)
+	// 6) Re-authenticate with factory zero key (slot 0) to change keys
+	sess, err = ntag424.AuthenticateEV2First(conn, zeroKey, authDefaultKeyNo)
 	if err != nil {
 		return "", fmt.Errorf("authenticate with factory key: %w", err)
 	}
