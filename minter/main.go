@@ -24,6 +24,7 @@ func main() {
 	hatColor := flag.String("hat-color", "", "hat color (required)")
 	hatSKU := flag.String("hat-sku", "", "hat SKU (optional)")
 	batchID := flag.String("batch-id", "", "batch ID (optional)")
+	batchSize := flag.Int("batch-size", 0, "batch size (optional)")
 	scanCount := flag.Int("scan-count", 0, "scan count (optional)")
 	notes := flag.String("notes", "", "notes (optional)")
 	flag.Parse()
@@ -124,6 +125,7 @@ func main() {
 		HatColor:  strings.TrimSpace(*hatColor),
 		HatSKU:    strings.TrimSpace(*hatSKU),
 		BatchID:   strings.TrimSpace(*batchID),
+		BatchSize: *batchSize,
 		ScanCount: *scanCount,
 		Notes:     strings.TrimSpace(*notes),
 	}
@@ -142,6 +144,9 @@ func main() {
 	}
 	if reg.BatchID != "" {
 		fmt.Printf("  Batch: %s\n", reg.BatchID)
+	}
+	if reg.BatchSize > 0 {
+		fmt.Printf("  Batch Size: %d\n", reg.BatchSize)
 	}
 }
 

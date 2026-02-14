@@ -14,6 +14,7 @@ type TagRegistration struct {
 	HatColor  string `json:"hat_color"`
 	HatSKU    string `json:"hat_sku,omitempty"`
 	BatchID   string `json:"batch_id,omitempty"`
+	BatchSize int    `json:"batch_size,omitempty"`
 	ScanCount int    `json:"scan_count,omitempty"`
 	Notes     string `json:"notes,omitempty"`
 }
